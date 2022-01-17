@@ -99,7 +99,6 @@ python tools/test.py configs/dodet.py ${CHECKPOINT_FILE} --format-only --options
 | DODet | R50-FPN | DIOR-R |1x  | 65.10 |
 | DODet | R50-FPN | DOTA1.0 | 1x  | 75.49 |
 | DODet | R101-FPN | DOTA1.0 | 1x  | 75.89 |
-| DODet | R50-FPN | HRSC2016 | 3x   | 94.84 |
 
 ## Citation
 This code is based on MMdetection2[https://github.com/open-mmlab/mmdetection], and the core part of this code is modified from OBBDetection[https://github.com/jbwang1997/OBBDetection].
@@ -120,6 +119,15 @@ If you use this repo in your research, please cite the following information.
   pages={296--307},
   year={2020},
   publisher={Elsevier}
+}
+
+@misc{cheng2021,
+  title={Anchor-free Oriented Proposal Generator for Object Detection}, 
+  author={Gong Cheng and Jiabao Wang and Ke Li and Xingxing Xie and Chunbo Lang and Yanqing Yao and Junwei Han},
+  year={2021},
+  eprint={2110.01931},
+  archivePrefix={arXiv},
+  primaryClass={cs.CV}
 }
 ```
 
