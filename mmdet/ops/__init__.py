@@ -5,7 +5,8 @@ from .dcn import (DeformConv, DeformConvPack, DeformRoIPooling,
                   DeformRoIPoolingPack, ModulatedDeformConv,
                   ModulatedDeformConvPack, ModulatedDeformRoIPoolingPack,
                   deform_conv, deform_roi_pooling, modulated_deform_conv)
-from .dcn2 import (DeformRoIPooling2, DeformRoIPoolingPack2, ModulatedDeformRoIPoolingPack2)
+from .obb_dcn import (OBBDeformRoIPooling, OBBDeformRoIPoolingPack,
+                  OBBModulatedDeformRoIPoolingPack)
 from .generalized_attention import GeneralizedAttention
 from .masked_conv import MaskedConv2d
 from .nms import batched_nms, nms, nms_match, soft_nms
@@ -40,5 +41,6 @@ __all__ = [
     'roi_align_rotated', 'RoIAlignRotated', 'obb_nms', 'BT_nms',
     'arb_batched_nms', 'obb_overlaps',
 
-    'DeformRoIPooling2', 'DeformRoIPoolingPack2', 'ModulatedDeformRoIPoolingPack2'
+    'OBBDeformRoIPooling', 'OBBDeformRoIPoolingPack',
+    'OBBModulatedDeformRoIPoolingPack'
 ]

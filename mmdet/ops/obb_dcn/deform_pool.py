@@ -4,7 +4,40 @@ from torch.autograd import Function
 from torch.autograd.function import once_differentiable
 from torch.nn.modules.utils import _pair
 
-from . import deform_pool_ext2
+from . import obb_deform_pool_ext
+import torch.nn as nn
+from collections import OrderedDict
+import torch.nn.functional as F
+import math
+
+
+COEFF = 12.0
+
+class SoftGate(nn.Module):
+    def __init__(self):
+        super(SoftGate, self).__init__()
+
+    def forward(self, x):
+        return torch.sigmoid(x).mul(COEFF)
+
+class AWPool(nn.Module):
+    def __init__(self, channels):
+        super(AWPool, self).__init__()
+
+        self.weight = nn.Sequential(
+            OrderedDict((
+                ('conv', nn.Conv2d(channels, channels, 3, padding=1, bias=False)),
+                ('bn', nn.InstanceNorm2d(channels, affine=True)),
+                ('gate', SoftGate()),
+            ))
+        )
+
+    def init_layer(self):
+        self.weight[0].weight.data.fill_(0.0)
+
+    def forward(self, x, kernel=3, stride=2, padding=1):
+        weight = self.weight(x).exp()
+        return F.avg_pool2d(x * weight, kernel, stride, padding) / F.avg_pool2d(weight, kernel, stride, padding)
 
 
 class DeformRoIPoolingFunction(Function):
@@ -44,7 +77,7 @@ class DeformRoIPoolingFunction(Function):
         n = rois.shape[0]
         output = data.new_empty(n, out_channels, out_size, out_size)
         output_count = data.new_empty(n, out_channels, out_size, out_size)
-        deform_pool_ext2.deform_psroi_pooling_forward(
+        obb_deform_pool_ext.deform_psroi_pooling_forward(
             data, rois, offset, output, output_count, ctx.no_trans,
             ctx.spatial_scale, ctx.out_channels, ctx.group_size, ctx.out_size,
             ctx.part_size, ctx.sample_per_part, ctx.trans_std)
@@ -67,7 +100,7 @@ class DeformRoIPoolingFunction(Function):
         grad_rois = None
         grad_offset = torch.zeros_like(offset)
 
-        deform_pool_ext2.deform_psroi_pooling_backward(
+        obb_deform_pool_ext.deform_psroi_pooling_backward(
             grad_output, data, rois, offset, output_count, grad_input,
             grad_offset, ctx.no_trans, ctx.spatial_scale, ctx.out_channels,
             ctx.group_size, ctx.out_size, ctx.part_size, ctx.sample_per_part,
@@ -79,7 +112,7 @@ class DeformRoIPoolingFunction(Function):
 deform_roi_pooling = DeformRoIPoolingFunction.apply
 
 
-class DeformRoIPooling2(nn.Module):
+class OBBDeformRoIPooling(nn.Module):
 
     def __init__(self,
                  spatial_scale,
@@ -90,7 +123,7 @@ class DeformRoIPooling2(nn.Module):
                  part_size=None,
                  sample_per_part=4,
                  trans_std=.0):
-        super(DeformRoIPooling2, self).__init__()
+        super(OBBDeformRoIPooling, self).__init__()
         self.spatial_scale = spatial_scale
         self.out_size = _pair(out_size)
         self.out_channels = out_channels
@@ -110,7 +143,7 @@ class DeformRoIPooling2(nn.Module):
                                   self.trans_std)
 
 
-class DeformRoIPoolingPack2(DeformRoIPooling2):
+class OBBDeformRoIPoolingPack(OBBDeformRoIPooling):
 
     def __init__(self,
                  spatial_scale,
@@ -123,16 +156,19 @@ class DeformRoIPoolingPack2(DeformRoIPooling2):
                  trans_std=.0,
                  num_offset_fcs=3,
                  deform_fc_channels=1024):
-        super(DeformRoIPoolingPack2,
+        super(OBBDeformRoIPoolingPack,
               self).__init__(spatial_scale, out_size, out_channels, no_trans,
                              group_size, part_size, sample_per_part, trans_std)
 
         self.num_offset_fcs = num_offset_fcs
         self.deform_fc_channels = deform_fc_channels
+        self.offset_size = (3,3)
+        self.awp = AWPool(256)
+        self.awp.init_layer()
 
         if not no_trans:
             seq = []
-            ic = self.out_size[0] * self.out_size[1] * self.out_channels
+            ic = self.offset_size[0] * self.offset_size[1] * self.out_channels
             for i in range(self.num_offset_fcs):
                 if i < self.num_offset_fcs - 1:
                     oc = self.deform_fc_channels
@@ -155,26 +191,30 @@ class DeformRoIPoolingPack2(DeformRoIPooling2):
         if self.no_trans:
             offset = data.new_empty(0)
             return deform_roi_pooling(data, rois, offset, self.spatial_scale,
-                                      self.out_size, self.out_channels,
+                                      self.offset_size, self.out_channels,
                                       self.no_trans, self.group_size,
-                                      self.part_size, self.sample_per_part,
+                                      self.offset_size, self.sample_per_part,
                                       self.trans_std)
         else:
             offset = data.new_empty(0)
             x = deform_roi_pooling(data, rois, offset, self.spatial_scale,
-                                   self.out_size, self.out_channels, True,
-                                   self.group_size, self.part_size,
+                                   self.offset_size, self.out_channels, True,
+                                   self.group_size, self.offset_size[0],
                                    self.sample_per_part, self.trans_std)
             offset = self.offset_fc(x.view(n, -1))
             offset = offset.view(n, 2, self.out_size[0], self.out_size[1])
-            return deform_roi_pooling(data, rois, offset, self.spatial_scale,
-                                      self.out_size, self.out_channels,
+            offset = F.interpolate(offset, scale_factor=2, mode='nearest')
+
+            roi_feats = deform_roi_pooling(data, rois, offset, self.spatial_scale,
+                                      (self.out_size[0]*2,self.out_size[1]*2), self.out_channels,
                                       self.no_trans, self.group_size,
-                                      self.part_size, self.sample_per_part,
+                                      self.part_size*2, self.sample_per_part,
                                       self.trans_std)
+            roi_feats = self.awp(roi_feats)
+            return roi_feats
 
 
-class ModulatedDeformRoIPoolingPack2(DeformRoIPooling2):
+class OBBModulatedDeformRoIPoolingPack(OBBDeformRoIPooling):
 
     def __init__(self,
                  spatial_scale,
@@ -188,7 +228,7 @@ class ModulatedDeformRoIPoolingPack2(DeformRoIPooling2):
                  num_offset_fcs=3,
                  num_mask_fcs=2,
                  deform_fc_channels=1024):
-        super(ModulatedDeformRoIPoolingPack2,
+        super(OBBModulatedDeformRoIPoolingPack,
               self).__init__(spatial_scale, out_size, out_channels, no_trans,
                              group_size, part_size, sample_per_part, trans_std)
 

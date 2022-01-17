@@ -75,10 +75,8 @@ class OBBConvFCBBoxHeadRefine(OBBoxHead):
                 self.reg_last_dim *= self.roi_feat_area
 
         self.relu = nn.ReLU(inplace=True)
-
         # reconstruct fc_cls and fc_reg since input channels are changed
         if self.with_cls:
-            # self.fc_cls = nn.Linear(self.cls_last_dim, self.num_classes + 1)
             self.fc_cls = nn.Sequential(
                 nn.Flatten(1), nn.Linear(self.in_channels*self.roi_feat_area, 1024), nn.ReLU(True),
                 nn.Linear(1024, 1024), nn.ReLU(True), nn.Linear(1024, self.num_classes + 1)
@@ -86,25 +84,14 @@ class OBBConvFCBBoxHeadRefine(OBBoxHead):
         if self.with_reg:
             out_dim_reg = self.reg_dim if self.reg_class_agnostic else \
                     self.reg_dim * self.num_classes
-            # self.fc_reg = nn.Linear(self.reg_last_dim, out_dim_reg)
             self.fc_reg = nn.Sequential(
                 nn.Conv2d(self.in_channels, 1024, 3, bias=False), nn.BatchNorm2d(1024), nn.ReLU(True),
                 nn.Conv2d(1024, 1024, 3, bias=False), nn.BatchNorm2d(1024), nn.ReLU(True),
                 nn.AvgPool2d(3), nn.Flatten(1), nn.Linear(1024, out_dim_reg)
             )
-
-        self.shared_convs2, self.shared_fcs2, last_layer_dim2 = \
-            self._add_conv_fc_branch(
-                self.num_shared_convs, self.num_shared_fcs, self.in_channels,
-                True)
-        # self.roiobb = OBBSingleRoIExtractor(
-        #     roi_layer = dict(type='RoIAlignRotated', out_size=7, sample_num=2),
-        #     out_channels = 256,
-        #     featmap_strides = [4, 8, 16, 32],
-        #     extend_factor=(1.4, 1.2))
         self.roiobb = OBBSingleRoIExtractor(
             roi_layer=dict(
-            type='DeformRoIPoolingPack2',
+            type='OBBDeformRoIPoolingPack',
             out_size=7,
             out_channels=256,
             no_trans=False,
@@ -156,7 +143,7 @@ class OBBConvFCBBoxHeadRefine(OBBoxHead):
         return branch_convs, branch_fcs, last_layer_dim
 
     def init_weights(self):
-        # super(OBBConvFCBBoxHeadRefine, self).init_weights()
+        super(OBBConvFCBBoxHeadRefine, self).init_weights()
         # conv layers are already initialized by ConvModule
         for module_list in [self.shared_fcs, self.cls_fcs, self.reg_fcs]:
             for m in module_list.modules():
@@ -165,7 +152,9 @@ class OBBConvFCBBoxHeadRefine(OBBoxHead):
                     nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
+        # roi extractor more
         x, feats, rois = x
+
         # shared part
         if self.num_shared_convs > 0:
             for conv in self.shared_convs:
@@ -180,69 +169,49 @@ class OBBConvFCBBoxHeadRefine(OBBoxHead):
             for fc in self.shared_fcs:
                 x = self.relu(fc(x))
         # separate branches
-        # x_cls = x
+        x_cls = x
         x_reg = x
 
-        # for conv in self.cls_convs:
-        #     x_cls = conv(x_cls)
-        # if x_cls.dim() > 2:
-        #     if self.with_avg_pool:
-        #         x_cls = self.avg_pool(x_cls)
-        #     x_cls = x_cls.flatten(1)
-        # for fc in self.cls_fcs:
-        #     x_cls = self.relu(fc(x_cls))
+        for conv in self.cls_convs:
+            x_cls = conv(x_cls)
+        if x_cls.dim() > 2:
+            if self.with_avg_pool:
+                x_cls = self.avg_pool(x_cls)
+            x_cls = x_cls.flatten(1)
+        for fc in self.cls_fcs:
+            x_cls = self.relu(fc(x_cls))
 
-        # for conv in self.reg_convs:
-        #     x_reg = conv(x_reg)
-        # if x_reg.dim() > 2:
-        #     if self.with_avg_pool:
-        #         x_reg = self.avg_pool(x_reg)
-        #     x_reg = x_reg.flatten(1)
-        # for fc in self.reg_fcs:
-        #     x_reg = self.relu(fc(x_reg))
-
-        # cls_score = self.fc_cls(x_cls) if self.with_cls else None
-        bbox_pred = self.fc_reg(x_reg) if self.with_reg else None
+        for conv in self.reg_convs:
+            x_reg = conv(x_reg)
+        if x_reg.dim() > 2:
+            if self.with_avg_pool:
+                x_reg = self.avg_pool(x_reg)
+            x_reg = x_reg.flatten(1)
+        for fc in self.reg_fcs:
+            x_reg = self.relu(fc(x_reg))
 
 
-
+        # our implementation
+        # 1. regression bboxes
+        bbox_pred = self.fc_reg(x) if self.with_reg else None
+        # 2. bbox roi refine
         bbox = self.bbox_coder.decode(rois[:, 1:], bbox_pred.detach())
         roisx = torch.empty(rois.size(0), 6).to(bbox.device)
         roisx[:, 0] = rois[:, 0]
         roisx[:, 1:] = bbox
         x = self.roiobb(feats, roisx)
+        # 3. classification branch
+        cls_score = self.fc_cls(x) if self.with_cls else None
 
-        if self.num_shared_convs > 0:
-            for conv in self.shared_convs2:
-                x = conv(x)
-        if self.num_shared_fcs > 0:
-            if self.with_avg_pool:
-                x = self.avg_pool(x)
-            x = x.flatten(1)
-            for fc in self.shared_fcs2:
-                x = self.relu(fc(x))
-        
-        x_cls = x
-        
-        # for conv in self.cls_convs:
-        #     x_cls = conv(x_cls)
-        # if x_cls.dim() > 2:
-        #     if self.with_avg_pool:
-        #         x_cls = self.avg_pool(x_cls)
-        #     x_cls = x_cls.flatten(1)
-        # for fc in self.cls_fcs:
-        #     x_cls = self.relu(fc(x_cls))
 
-        cls_score = self.fc_cls(x_cls) if self.with_cls else None
-        
         return cls_score, bbox_pred
 
 
 @HEADS.register_module()
-class OBBFCBBoxHeadRefine(OBBConvFCBBoxHeadRefine):
+class OBBBBoxHeadRefine(OBBConvFCBBoxHeadRefine):
 
     def __init__(self, fc_out_channels=1024, *args, **kwargs):
-        super(OBBFCBBoxHeadRefine, self).__init__(
+        super(OBBBBoxHeadRefine, self).__init__(
             num_shared_convs=0,
             num_shared_fcs=0,
             num_cls_convs=0,

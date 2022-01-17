@@ -10,7 +10,7 @@ pi = 3.141592
 
 
 @BBOX_CODERS.register_module()
-class HBB2OBBDeltaXYWHTCodersr(BaseBBoxCoder):
+class HBB2OBBDeltaXYWHTCoderSR(BaseBBoxCoder):
 
     def __init__(self,
                  theta_norm=True,
@@ -58,24 +58,17 @@ def obb2delta(proposals, gt, theta_norm=True, means=(0., 0., 0., 0., 0.), stds=(
     gh_regular = torch.where(abs_dtheta1 < abs_dtheta2, gh, gw)
     dtheta = torch.where(abs_dtheta1 < abs_dtheta2, dtheta1, dtheta2)
 
-    # modify
     pr, gr = pw / ph, gw_regular / gh_regular
     ps, gs = pw * ph, gw_regular * gh_regular
 
     dx = (gx - px) / pw
     dy = (gy - py) / ph
-    dw = torch.log(gw_regular / pw)
-    dh = torch.log(gh_regular / ph)
-
-    # modify
     dr = torch.log(gr / pr)
     ds = torch.log(gs / ps)
 
     if theta_norm:
         dtheta /= 2 * pi
-    deltas = torch.stack([dx, dy, dw, dh, dtheta], dim=-1)
 
-    # modify
     deltas = torch.stack([dx, dy, dr, ds, dtheta], dim=-1)
 
     means = deltas.new_tensor(means).unsqueeze(0)
@@ -96,35 +89,25 @@ def delta2obb(proposals,
 
     dx = denorm_deltas[:, 0::5]
     dy = denorm_deltas[:, 1::5]
-    dw = denorm_deltas[:, 2::5]
-    dh = denorm_deltas[:, 3::5]
-    # modify
     dr = denorm_deltas[:, 2::5]
     ds = denorm_deltas[:, 3::5]
     dtheta = denorm_deltas[:, 4::5]
     if theta_norm:
         dtheta *= 2 * pi
     max_ratio = np.abs(np.log(wh_ratio_clip))
-    dw = dw.clamp(min=-max_ratio, max=max_ratio)
-    dh = dh.clamp(min=-max_ratio, max=max_ratio)
-    # modify
+
     dr = dr.clamp(min=-max_ratio, max=max_ratio)
     ds = ds.clamp(min=-max_ratio, max=max_ratio)
 
     px = ((proposals[:, 0] + proposals[:, 2]) * 0.5).unsqueeze(1).expand_as(dx)
     py = ((proposals[:, 1] + proposals[:, 3]) * 0.5).unsqueeze(1).expand_as(dy)
-    pw = (proposals[:, 2] - proposals[:, 0]).unsqueeze(1).expand_as(dw)
-    ph = (proposals[:, 3] - proposals[:, 1]).unsqueeze(1).expand_as(dh)
+    pw = (proposals[:, 2] - proposals[:, 0]).unsqueeze(1).expand_as(dr)
+    ph = (proposals[:, 3] - proposals[:, 1]).unsqueeze(1).expand_as(ds)
 
-    # modify
     pr = pw / ph
     ps = pw * ph
-
     gx = px + pw * dx
     gy = py + ph * dy
-    gw = pw * dw.exp()
-    gh = ph * dh.exp()
-    # modify
     gr = pr * dr.exp()
     gs = ps * ds.exp()
     gw = ( gs * gr ).sqrt()

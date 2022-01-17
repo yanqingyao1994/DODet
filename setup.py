@@ -267,8 +267,8 @@ if __name__ == '__main__':
                     'src/cuda/deform_pool_cuda_kernel.cu'
                 ]),
             make_cuda_ext(
-                name='deform_pool_ext2',
-                module='mmdet.ops.dcn2',
+                name='obb_deform_pool_ext',
+                module='mmdet.ops.obb_dcn',
                 sources=['src/deform_pool_ext.cpp'],
                 sources_cuda=[
                     'src/cuda/deform_pool_cuda.cpp',

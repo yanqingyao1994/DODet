@@ -6,7 +6,7 @@ from .obb_base_roi_extractor import OBBBaseRoIExtractor
 
 
 @ROI_EXTRACTORS.register_module()
-class OBBSingleRoIExtractor_more(OBBBaseRoIExtractor):
+class OBBSingleRoIExtractorMore(OBBBaseRoIExtractor):
     """Extract RoI features from a single level feature map.
 
     If there are multiple input feature levels, each RoI is mapped to a level
@@ -26,7 +26,7 @@ class OBBSingleRoIExtractor_more(OBBBaseRoIExtractor):
                  featmap_strides,
                  extend_factor=(1., 1.),
                  finest_scale=56):
-        super(OBBSingleRoIExtractor_more, self).__init__(roi_layer, out_channels,
+        super(OBBSingleRoIExtractorMore, self).__init__(roi_layer, out_channels,
                                                     featmap_strides)
         self.extend_factor = extend_factor
         self.finest_scale = finest_scale
