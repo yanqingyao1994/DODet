@@ -1,6 +1,6 @@
 # [Dual Alignment for Oriented Object Detection](https://arxiv.org/)
 
-Gong Cheng, Yanqing Yao, Ke Li, Xingxing Xie, Jiabao Wang, Shengyang Li, Xiwen Yao, Junwei Han
+Gong Cheng, Yanqing Yao, Shengyang Li, Ke Li, Xingxing Xie, Jiabao Wang, Xiwen Yao and Junwei Han
 
 ## Introduction
 
@@ -107,7 +107,7 @@ If you use this repo in your research, please cite the following information.
 
 ```
 @unpublished{DODet,
-   author = "Cheng, Gong and Yao, Yanqing and Li, ke and Xie, Xingxing and Wang, Jiabao and Li, Shengyang and Yao, Xiwen and Han, Junwei",
+   author = "Cheng, Gong and Yao, Yanqing and Li, Shengyang and Li, ke and Xie, Xingxing and Wang, Jiabao and Yao, Xiwen and Han, Junwei",
    title = "Dual alignment for oriented object detection",
 }
 
