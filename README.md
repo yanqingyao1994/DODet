@@ -107,7 +107,7 @@ If you use this repo in your research, please cite the following information.
 
 ```
 @unpublished{DODet,
-   author = "Cheng, Gong and Yao, Yanqing and li, ke and Xie, Xingxing and Wang, Jiabao and Li, Shengyang and Yao, Xiwen and Han, Junwei",
+   author = "Cheng, Gong and Yao, Yanqing and Li, ke and Xie, Xingxing and Wang, Jiabao and Li, Shengyang and Yao, Xiwen and Han, Junwei",
    title = "Dual alignment for oriented object detection",
 }
 
@@ -123,7 +123,7 @@ If you use this repo in your research, please cite the following information.
 
 @misc{cheng2021,
   title={Anchor-free Oriented Proposal Generator for Object Detection}, 
-  author={Gong Cheng and Jiabao Wang and Ke Li and Xingxing Xie and Chunbo Lang and Yanqing Yao and Junwei Han},
+  author={Cheng, Gong and Wang, Jiabao and Li, Ke and Xie, Xingxing and Lang, Chunbo and Yao, Yanqing and Han, Junwei},
   year={2021},
   eprint={2110.01931},
   archivePrefix={arXiv},
