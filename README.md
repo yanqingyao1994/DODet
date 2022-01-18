@@ -1,6 +1,6 @@
 # [Dual Alignment for Oriented Object Detection](https://arxiv.org/)
 
-Gong Cheng, Yanqing Yao, Ke Li, Xingxing Xie, Jiabao Wang, Xiwen Yao, Junwei Han
+Gong Cheng, Yanqing Yao, Ke Li, Xingxing Xie, Jiabao Wang, Shengyang Li, Xiwen Yao, Junwei Han
 
 ## Introduction
 
