@@ -107,7 +107,7 @@ If you use this repo in your research, please cite the following information.
 
 ```
 @unpublished{DODet,
-   author = "Cheng, Gong and Yao, Yanqing and li, ke and Xie, Xingxing and Wang Jiabao and Yao. Xiwen and Han, Junwei",
+   author = "Cheng, Gong and Yao, Yanqing and li, ke and Xie, Xingxing and Wang, Jiabao and Li, Shengyang and Yao, Xiwen and Han, Junwei",
    title = "Dual alignment for oriented object detection",
 }
 
