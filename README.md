@@ -73,7 +73,7 @@ python BboxToolkit/tools/img_split.py --base_json BboxToolkit/tools/configs/ss_d
 
 ``` shell
 # one GPU training
-python tools/train.py configs/dodet.py
+python tools/train.py configs/dodet_r50_fpn_1x_ss_dota.py
 
 # multiple GPUs traing
 python /tools/dist_train.sh configs/dodet.py ${GPU_NUM}
