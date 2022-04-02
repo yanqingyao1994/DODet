@@ -76,7 +76,7 @@ python BboxToolkit/tools/img_split.py --base_json BboxToolkit/tools/configs/ss_d
 python tools/train.py configs/dodet_r50_fpn_1x_ss_dota.py
 
 # multiple GPUs traing
-python /tools/dist_train.sh configs/dodet.py ${GPU_NUM}
+python /tools/dist_train.sh configs/dodet_r50_fpn_1x_ss_dota.py ${GPU_NUM}
 ```
 
 ### Test
