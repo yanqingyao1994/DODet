@@ -143,13 +143,7 @@ class OBBConvFCBBoxHeadRefine(OBBoxHead):
         return branch_convs, branch_fcs, last_layer_dim
 
     def init_weights(self):
-        super(OBBConvFCBBoxHeadRefine, self).init_weights()
-        # conv layers are already initialized by ConvModule
-        for module_list in [self.shared_fcs, self.cls_fcs, self.reg_fcs]:
-            for m in module_list.modules():
-                if isinstance(m, nn.Linear):
-                    nn.init.xavier_uniform_(m.weight)
-                    nn.init.constant_(m.bias, 0)
+        pass
 
     def forward(self, x):
         # roi extractor more
