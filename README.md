@@ -13,10 +13,10 @@ In the past few years, object detection in remote sensing images has achieved re
 ### Test Platform
 - Ubuntu1804 + Anaconda
 - GCC 7.5.0
-- CUDA 10.2
-- Python 3.9.7
-- pytorch 1.9.1
-- torchvision 0.10.1
+- CUDA 10.1
+- Python 3.8
+- pytorch 1.8.1
+- torchvision 0.9.1
 - mmdet 2.2.0
 - mmcv  0.6.2
 
@@ -25,7 +25,7 @@ a. install CUDA, Python and pytorch with conda. [official instructions](https://
 ``` shell
 conda create -n dodet
 conda activate dodet
-conda install python=3.9.7 pytorch=1.9.1 torchvision=0.10.1 cudatoolkit=10.2 -c pytorch
+conda install python=3.8 pytorch=1.8 torchvision=0.9 cudatoolkit=10.1 -c pytorch
 ```
 
 b. clone modified mmdet code and install mmcv.
